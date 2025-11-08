@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36623.8 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinFormsProgressOverlay_netfx", "ProgressOverlay_netfx\WinFormsProgressOverlay_netfx.csproj", "{45652FB3-E7DC-48B3-9312-571ED98BFE84}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleWinFormsApp_netfx", "SampleWinFormsApp_netfx\SampleWinFormsApp_netfx.csproj", "{94A1477F-BCD6-4B2E-A372-B03F0052A0B2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{45652FB3-E7DC-48B3-9312-571ED98BFE84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45652FB3-E7DC-48B3-9312-571ED98BFE84}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45652FB3-E7DC-48B3-9312-571ED98BFE84}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45652FB3-E7DC-48B3-9312-571ED98BFE84}.Release|Any CPU.Build.0 = Release|Any CPU
+		{94A1477F-BCD6-4B2E-A372-B03F0052A0B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{94A1477F-BCD6-4B2E-A372-B03F0052A0B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{94A1477F-BCD6-4B2E-A372-B03F0052A0B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{94A1477F-BCD6-4B2E-A372-B03F0052A0B2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {96841155-BA99-45DC-839E-98DA7D6A6BD7}
+	EndGlobalSection
+EndGlobal
