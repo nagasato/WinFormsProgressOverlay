@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="WinFormsProgressOverlay/WinFormsProgressOverlay.csproj" />
+  <Project Path="SampleWinFormsApp_net8/SampleWinFormsApp_net8.csproj" />
+  <Project Path="SampleWinFormsApp_netfx/SampleWinFormsApp_netfx.csproj" />
+</Solution>
