@@ -9,15 +9,15 @@ namespace WinFormsProgressOverlay
 {
     /// <summary>
     /// 処理中オーバーレイを表示するクラス
-    /// usingステートメントで使用し、ブロック内の処理中にオーバーレイを表示します
+    /// usingステートメントで使用し、ブロック内の処理中にオーバーレイを表示する。
     /// </summary>
     public class ProgressOverlay : IDisposable
     {
-        private readonly Form _owner;
+        private readonly Control _hostControl;
         private readonly OverlayForm _overlay;
         private readonly CancellationTokenSource _cts;
         private readonly List<Control> _disabledControls;
-        private readonly bool _wasOwnerEnabled;
+        private readonly bool _wasHostControlEnabled;
 
         // use IDisposable.
         private bool _disposed = false;
@@ -30,22 +30,22 @@ namespace WinFormsProgressOverlay
         /// <summary>
         /// Private コンストラクタ
         /// </summary>
-        /// <param name="owner">呼び出し元のフォーム</param>
+        /// <param name="hostControl">オーバーレイされるコントロール</param>
         /// <param name="message">表示メッセージ</param>
         /// <param name="cancellable">キャンセル可能かどうか</param>
-        /// <param name="disableControls">無効化するコントロールのリスト（nullの場合はForm全体を無効化）</param>
-        /// <param name="messageFont">メッセージのフォント（nullの場合は親Formのフォントを使用）</param>
-        private ProgressOverlay(Form owner, string message, bool cancellable, IEnumerable<Control> disableControls, Font messageFont)
+        /// <param name="disableControls">無効化するコントロールのリスト（nullの場合はホストコントロール全体を無効化）</param>
+        /// <param name="messageFont">メッセージのフォント（nullの場合はホストコントロールのフォントを使用）</param>
+        private ProgressOverlay(Control hostControl, string message, bool cancellable, IEnumerable<Control> disableControls, Font messageFont)
         {
-            if (owner == null)
+            if (hostControl == null)
             {
-                throw new ArgumentNullException(nameof(owner));
+                throw new ArgumentNullException(nameof(hostControl));
             }
 
-            _owner = owner;
+            _hostControl = hostControl;
             _cts = new CancellationTokenSource();
             _disabledControls = new List<Control>();
-            _wasOwnerEnabled = _owner.Enabled;
+            _wasHostControlEnabled = _hostControl.Enabled;
 
             // UI操作の無効化
             if (disableControls != null)
@@ -62,12 +62,12 @@ namespace WinFormsProgressOverlay
             }
             else
             {
-                // Form全体を無効化（デフォルト動作）
-                _owner.Enabled = false;
+                // ホストコントロール全体を無効化（デフォルト動作）
+                _hostControl.Enabled = false;
             }
 
-            // メッセージフォントが指定されていない場合は親Formのフォントを使用
-            Font fontToUse = messageFont ?? _owner.Font;
+            // メッセージフォントが指定されていない場合はホストコントロールのフォントを使用
+            Font fontToUse = messageFont ?? _hostControl.Font;
 
             // オーバーレイフォームの作成と表示
             _overlay = new OverlayForm(
@@ -77,25 +77,34 @@ namespace WinFormsProgressOverlay
                 fontToUse
                 );
 
-            // 親Formのクライアント領域に合わせてオーバーレイを配置
+            // ホストコントロールのクライアント領域に合わせてオーバーレイを配置
             this.UpdateOverlayBounds();
 
-            // 親Formのイベントにハンドラを登録（移動・リサイズ・状態変更に追従）
-            _owner.Move += owner_MoveOrResize;
-            _owner.Resize += owner_MoveOrResize;
-            _owner.SizeChanged += owner_MoveOrResize;
+            // ホストコントロールのイベントにハンドラを登録（移動・リサイズ・状態変更に追従）
+            if (_hostControl is Form)
+            {
+                _hostControl.Move += HostControl_MoveOrResize;
+            }
+            else
+            {
+                var hostForm = _hostControl.FindForm();
+                hostForm.Move += HostControl_MoveOrResize;
+            }
+
+            _hostControl.Resize += HostControl_MoveOrResize;
+            _hostControl.SizeChanged += HostControl_MoveOrResize;
 
             // オーバーレイを表示
-            _overlay.Show(_owner);
+            _overlay.Show(_hostControl);
 
             // UIの更新を強制
             Application.DoEvents();
         }
 
         /// <summary>
-        /// 親Formの移動・リサイズイベントハンドラ
+        /// ホストコントロールの移動・リサイズイベントハンドラ
         /// </summary>
-        private void owner_MoveOrResize(object sender, EventArgs e)
+        private void HostControl_MoveOrResize(object sender, EventArgs e)
         {
             if (_overlay != null && !_overlay.IsDisposed)
             {
@@ -104,70 +113,72 @@ namespace WinFormsProgressOverlay
         }
 
         /// <summary>
-        /// オーバーレイの位置とサイズを親Formのクライアント領域に合わせて更新
+        /// オーバーレイの位置とサイズをホストコントロールのクライアント領域に合わせて更新
         /// </summary>
         private void UpdateOverlayBounds()
         {
-            if (_owner != null && !_owner.IsDisposed && _overlay != null && !_overlay.IsDisposed)
+            if (_hostControl != null && !_hostControl.IsDisposed && _overlay != null && !_overlay.IsDisposed)
             {
-                // 親Formのクライアント領域の画面上の座標を取得
-                var clientRect = _owner.RectangleToScreen(_owner.ClientRectangle);
+                // ホストコントロールのクライアント領域の画面上の座標を取得
+                var clientRect = _hostControl.RectangleToScreen(_hostControl.ClientRectangle);
                 _overlay.Bounds = clientRect;
             }
         }
 
         /// <summary>
-        /// オーバーレイを表示する（Form全体を無効化）
+        /// オーバーレイを表示する（ホストコントロール全体を無効化）
         /// </summary>
-        /// <param name="owner">呼び出し元のフォーム</param>
+        /// <param name="hostControl">オーバーレイされるコントロール</param>
         /// <param name="message">表示メッセージ（デフォルト: "処理中..."）</param>
         /// <param name="cancellable">キャンセル可能かどうか（デフォルト: false）</param>
-        /// <param name="messageFont">メッセージのフォント（nullの場合は親Formのフォントを使用）</param>
+        /// <param name="messageFont">メッセージのフォント（nullの場合はホストコントロールのフォントを使用）</param>
         /// <returns>ProcessingOverlayインスタンス</returns>
-        public static ProgressOverlay Show(Form owner, string message = "処理中...", bool cancellable = false, Font messageFont = null)
+        public static ProgressOverlay Show(Control hostControl, string message = "処理中...", bool cancellable = false, Font messageFont = null)
         {
-            return new ProgressOverlay(owner, message, cancellable, null, messageFont);
+            return new ProgressOverlay(hostControl, message, cancellable, null, messageFont);
         }
 
         /// <summary>
         /// オーバーレイを表示する（指定されたコントロールのみを無効化）
         /// </summary>
-        /// <param name="owner">呼び出し元のフォーム</param>
+        /// <param name="hostControl">オーバーレイされるコントロール</param>
         /// <param name="message">表示メッセージ</param>
         /// <param name="disableControls">無効化するコントロールのリスト</param>
         /// <param name="cancellable">キャンセル可能かどうか（デフォルト: false）</param>
-        /// <param name="messageFont">メッセージのフォント（nullの場合は親Formのフォントを使用）</param>
+        /// <param name="messageFont">メッセージのフォント（nullの場合はホストコントロールのフォントを使用）</param>
         /// <returns>ProcessingOverlayインスタンス</returns>
-        public static ProgressOverlay Show(Form owner, string message, IEnumerable<Control> disableControls, bool cancellable = false, Font messageFont = null)
+        public static ProgressOverlay Show(Control hostControl, string message, IEnumerable<Control> disableControls, bool cancellable = false, Font messageFont = null)
         {
-            return new ProgressOverlay(owner, message, cancellable, disableControls, messageFont);
+            return new ProgressOverlay(hostControl, message, cancellable, disableControls, messageFont);
         }
 
         /// <summary>
         /// オーバーレイを表示する（指定されたコントロールのみを無効化、可変長引数版）
         /// </summary>
-        /// <param name="owner">呼び出し元のフォーム</param>
+        /// <param name="hostControl">オーバーレイされるコントロール</param>
         /// <param name="message">表示メッセージ</param>
         /// <param name="cancellable">キャンセル可能かどうか</param>
-        /// <param name="messageFont">メッセージのフォント（nullの場合は親Formのフォントを使用）</param>
+        /// <param name="messageFont">メッセージのフォント（nullの場合はホストコントロールのフォントを使用）</param>
         /// <param name="disableControls">無効化するコントロール（可変長引数）</param>
         /// <returns>ProcessingOverlayインスタンス</returns>
-        public static ProgressOverlay ShowWithControls(Form owner, string message, bool cancellable, Font messageFont, params Control[] disableControls)
+        [Obsolete("このオーバーロードは非推奨です。Showメソッドを使用してください。")]
+        public static ProgressOverlay ShowWithControls(Control hostControl, string message, bool cancellable, Font messageFont, params Control[] disableControls)
         {
-            return new ProgressOverlay(owner, message, cancellable, disableControls, messageFont);
+            return new ProgressOverlay(hostControl, message, cancellable, disableControls, messageFont);
         }
 
         /// <summary>
         /// オーバーレイを表示する（指定されたコントロールのみを無効化、可変長引数版、フォント省略）
         /// </summary>
-        /// <param name="owner">呼び出し元のフォーム</param>
+        /// <param name="hostControl">オーバーレイされるコントロール</param>
         /// <param name="message">表示メッセージ</param>
         /// <param name="cancellable">キャンセル可能かどうか</param>
         /// <param name="disableControls">無効化するコントロール（可変長引数）</param>
         /// <returns>ProcessingOverlayインスタンス</returns>
-        public static ProgressOverlay ShowWithControls(Form owner, string message, bool cancellable, params Control[] disableControls)
+        [Obsolete("このオーバーロードは非推奨です。Showメソッドを使用してください。")]
+        public static ProgressOverlay ShowWithControls(Control hostControl, string message, bool cancellable, params Control[] disableControls)
         {
-            return new ProgressOverlay(owner, message, cancellable, disableControls, null);
+            return new ProgressOverlay(hostControl, message, cancellable, disableControls, null);
         }
 
         /// <summary>
@@ -202,12 +213,20 @@ namespace WinFormsProgressOverlay
             {
                 if (disposing)
                 {
-                    // 親Formのイベントハンドラを解除
-                    if (_owner != null && !_owner.IsDisposed)
+                    // ホストコントロールのイベントハンドラを解除
+                    if (_hostControl != null && !_hostControl.IsDisposed)
                     {
-                        _owner.Move -= owner_MoveOrResize;
-                        _owner.Resize -= owner_MoveOrResize;
-                        _owner.SizeChanged -= owner_MoveOrResize;
+                        if (_hostControl is Form)
+                        {
+                            _hostControl.Move -= HostControl_MoveOrResize;
+                        }
+                        else
+                        {
+                            var hostForm = _hostControl.FindForm();
+                            hostForm.Move -= HostControl_MoveOrResize;
+                        }
+                        _hostControl.Resize -= HostControl_MoveOrResize;
+                        _hostControl.SizeChanged -= HostControl_MoveOrResize;
                     }
 
                     // オーバーレイを閉じる
@@ -218,7 +237,7 @@ namespace WinFormsProgressOverlay
                     }
 
                     // UI操作の有効化
-                    if (_owner != null && !_owner.IsDisposed)
+                    if (_hostControl != null && !_hostControl.IsDisposed)
                     {
                         if (_disabledControls.Any())
                         {
@@ -233,11 +252,13 @@ namespace WinFormsProgressOverlay
                         }
                         else
                         {
-                            // Form全体を有効化
-                            _owner.Enabled = _wasOwnerEnabled;
+                            // ホストコントロール全体を有効化
+                            _hostControl.Enabled = _wasHostControlEnabled;
                         }
 
-                        _owner.Activate();
+                        // 親Formのフォーカスを復元
+                        var form = _hostControl.FindForm();
+                        form?.Activate();
                     }
 
                     // CancellationTokenSourceを解放
@@ -249,6 +270,21 @@ namespace WinFormsProgressOverlay
 
                 _disposed = true;
             }
+        }
+
+        private Form GetTopForm(Control owner)
+        {
+            // _ownerコントロールの親をFormに行き着くまで辿って、そのFormを取得する
+            Control current = owner;
+            while (current != null)
+            {
+                if (current is Form form)
+                {
+                    return form;
+                }
+                current = current.Parent;
+            }
+            return null;
         }
     }
 }
