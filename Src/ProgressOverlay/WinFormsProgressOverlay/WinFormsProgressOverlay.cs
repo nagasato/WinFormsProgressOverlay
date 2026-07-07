@@ -88,8 +88,12 @@ namespace WinFormsProgressOverlay
             else
             {
                 var parentForm = _hostControl.FindForm();
-                parentForm.Move += HostControl_MoveOrResize;
+                if (parentForm != null && !parentForm.IsDisposed)
+                {
+                    parentForm.Move += HostControl_MoveOrResize;
+                }
             }
+
             _hostControl.Resize += HostControl_MoveOrResize;
             _hostControl.SizeChanged += HostControl_MoveOrResize;
 
