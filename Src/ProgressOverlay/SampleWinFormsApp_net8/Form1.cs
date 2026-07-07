@@ -60,13 +60,12 @@ namespace SampleWinFormsApp_net8
         {
             try
             {
-                using (var overlay = ProgressOverlay.ShowWithControls(
-                    this,
+                var disableControls = new Control[] { btnSimpleProcess, btnCancellableProcess, btnPartialDisable, btnCustomFont };
+                using (var overlay = ProgressOverlay.Show(
+                    panel1,
                     "一部のボタンのみ無効化しています...\n[有効のまま] ボタンはクリック可能です",
-                    cancellable: true,
-                    btnSimpleProcess,
-                    btnCancellableProcess,
-                    btnPartialDisable))
+                    disableControls,
+                    cancellable: true))
                 {
                     for (int i = 0; i < 10; i++)
                     {
@@ -102,7 +101,7 @@ namespace SampleWinFormsApp_net8
             {
                 using (var customFont = new Font("MS Gothic", 16F, FontStyle.Bold))
                 using (var overlay = ProgressOverlay.Show(
-                    this,
+                    panel1,
                     "カスタムフォントで表示中...",
                     cancellable: false,
                     customFont))
